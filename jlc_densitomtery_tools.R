@@ -11,7 +11,8 @@ txt_size = 22
 
 idensImport = function(path, id) {
   ## imports data set, splits to 2x columns, sample and background
-  ## path   (str)     absolute path to data files.
+  ## path   (str)     absolute path to data files
+  ## id     (str)     identifier
   dat = read.csv(path)
   df_len = nrow(dat)
   df = data.frame(dat[1:(df_len/2),], dat[((df_len/2)+1):nrow(dat),])
@@ -25,6 +26,7 @@ idensImport = function(path, id) {
 perc_bound = function(imported_df){
   # calculates percentage binding from dens data
   ## imported_df    (df)    output from "import" module
+  
   ## background correction
   imported_df$corrected = imported_df$ints - imported_df$bkg
   ## normalise
@@ -46,7 +48,9 @@ return(inp)
 }
   
 comSub<-function(x) {
-  ## not my function, will find first common substring of any list of strings
+  # Not my function, taken from https://stackoverflow.com/questions/28273716/r-implementation-for-finding-the-longest-common-starting-substrings-in-a-set-of
+  
+  ## will find first common substring of any list of strings
   # sort the vector
   x<-sort(x)
   # split the first and last element by character
@@ -92,7 +96,7 @@ fitter = function(in_id, df, length_out=1000){
 }
 
 fitCalc = function(df, id_list){
-  # df should be otput of densClac
+  # df should be output of densCalc
   # id_list can be unique(df$c_id)
   out = do.call(rbind, lapply(id_list, fitter, df))
   return(out)
@@ -111,7 +115,7 @@ kdr = function(df){
       kd = mean(mf1$S[round(mf1$v,0)==50])
       kdlist = append(kdlist, kd)
     }
-    ## these commands should not work like this, but I have tested & get the correct answers
+    
     kd = mean(sapply(kdlist, mean))
     kdstdev = sd(sapply(kdlist, mean))
     out = data.frame(kd=kd, stdev=kdstdev, id=h)
