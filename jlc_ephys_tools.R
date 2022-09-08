@@ -298,7 +298,7 @@ transPlot = function(input_df, facet="y", fac_labs="y", norm="y"){
   if (norm == "y" | norm == "yes"){
     pout = ggplot(input_df)+
       geom_line(aes(x=time,y=norm))+
-      xlab("Time / s") + ylab("Current / pA\n")+
+      xlab("Time / s") + ylab("Normalised Current / pA\n")+
       theme_bw(base_size = txt_size)+
       My_Theme+
       theme(
@@ -310,7 +310,7 @@ transPlot = function(input_df, facet="y", fac_labs="y", norm="y"){
   } else {
     pout = ggplot(input_df)+
       geom_line(aes(x=time,y=current))+
-      xlab("Time / s") + ylab("Current / pA\n")+
+      xlab("Time / s") + ylab("Normalised Current / pA\n")+
       theme_bw(base_size = txt_size)+
       My_Theme+
       theme(
@@ -425,13 +425,13 @@ eventDetector = function(input_df, open_pore_current=0.8, polarity="+"){
   #ddf <<- data.frame()
   ## run sortIntoArray function to populate ddf
   ddf = do.call(rbind, apply(indf,1, sortIntoArray, open_pore_current = open_pore_current, polarity=polarity))
-  ## create data frame and populate with events, average and SD of currents and event lengthfrom ddf
+  ## create data frame and populate with events, average and SD of currents and event length from ddf
   out = data.frame()
   for (i in seq(1,max(ddf$event_count))){
     temp = subset(ddf, ddf$event_count==i)
     out = rbind(out, data.frame(
-      #duration=(max(temp$time)-min(temp$time)),
-      duration = mean(temp$time),
+      duration=(max(temp$time)-min(temp$time)),
+      #duration = mean(temp$time),
       event_count = unique(temp$event_count),
       avg_norm_current = modalAvg(temp$norm_event_current),
       sd_norm_current = sd(temp$norm_event_current),
@@ -440,8 +440,8 @@ eventDetector = function(input_df, open_pore_current=0.8, polarity="+"){
       exp = temp$exp))
     
     out[is.na(out)] <- 0
-    ## above should probably be a call to aggregate insteads
-    ## this data frame call is apparently fucking essential to any of this stupid code working
+
+    ## this data frame call is essential
     out = data.frame(unique(out))
   }
   return(out)
@@ -459,9 +459,11 @@ dwellPlotter = function(dwell_df, facet="y", fac_labs="y"){
     geom_point()+
     theme_bw(base_size = txt_size)+
     ylim(c(0,1))+
-    scale_x_continuous(trans='log10',
-                       breaks = trans_breaks('log10', function(x) 10^x),
-                       labels = trans_format('log10', math_format(10^.x)))+
+    scale_x_continuous(trans = log_trans(10), labels = comma_format(big.mark = "", decimal.mark = ".")) +
+    annotation_logticks(sides="b")+
+   # scale_x_continuous(trans='log10',
+  #                     breaks = trans_breaks('log10', function(x) 10^x),
+   #                    labels = trans_format('log10', math_format(10^.x)))+
     xlab("Dwell Time / s")+ylab("Normalised Block Level / %\n")+
     My_Theme+
     theme(
