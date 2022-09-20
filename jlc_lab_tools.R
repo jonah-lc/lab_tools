@@ -394,3 +394,34 @@ find_peaks <- function (x, m = 3){
   pks <- unlist(pks)
   pks
 }
+
+                      pngOut <- function(plot, dir, name, width=210, height=180){
+  ##  plot    (obj)     graphic to save to png
+  ##  dir     (str)     abs path to save png to
+  ##  name    (str)     filename to save plot as
+  ##  width   (int)     width of final output (mm)
+  ##  height   (int)    height of final output (mm)
+  
+  ## apply white background so no werid box appears 
+  out <- cowplot::ggdraw(plot) + 
+    theme(plot.background = element_rect(fill="white", color = NA))
+  loc = paste0(dir, name)
+  ## save
+  ggsave(filename=loc, 
+         plot = out, 
+         device = png, 
+         width = width, 
+         height = height, 
+         units = "mm")
+}
+  
+
+deriviative1 <- function(x,y){
+  ## Performs 1st derivative calculation on XY data, returns data frame with original x axis and 1st diff Y
+  ## x    (col, int)    x axis column to differentiate
+  ## y    (col, int)    y axis colun to differentiate
+  tdf = data.frame(x,y)
+  model = smooth.spline(x=tdf[,1], y=tdf[,2])
+  ddf = data.frame(predict(model, x=x, deriv=1))
+  return(ddf[,2])
+}
