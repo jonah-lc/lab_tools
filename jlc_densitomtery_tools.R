@@ -9,7 +9,7 @@ txt_size = 22
 
 
 
-idensImport = function(path, id) {
+densImport = function(path, id) {
   ## imports data set, splits to 2x columns, sample and background
   ## path   (str)     absolute path to data files
   ## id     (str)     identifier
@@ -25,7 +25,7 @@ idensImport = function(path, id) {
 
 perc_bound = function(imported_df){
   # calculates percentage binding from dens data
-  ## imported_df    (df)    output from "import" module
+  ## imported_df    (df)    output from "densImport" module
   
   ## background correction
   imported_df$corrected = imported_df$ints - imported_df$bkg
@@ -39,11 +39,13 @@ perc_bound = function(imported_df){
 
 
 preAvg = function(folder, file, ext=".csv", binder_conc){
-  inp = import(paste0(folder, file, ext))
+  inp = densImport(paste0(folder, file, ext))
   inp = perc_bound(inp)
-  inp$binder = binder_conc
   ## now remove last line post normalisation
   inp = inp[1:(nrow(inp)-1), ]
+  ## add new titratant concs
+  inp$binder = binder_conc
+
 return(inp)
 }
   
@@ -63,7 +65,7 @@ comSub<-function(x) {
 
 
 
-densCalc= function(folder, file_list, ext=".csv", binder_conc){
+densCalc= function(folder, file_list, ext=".csv", binder_conc, label){
   # binder_conc     (scalar)      list of int for concentration of titrator, must be same half length of data files
   
   ## prepare data
@@ -73,56 +75,32 @@ densCalc= function(folder, file_list, ext=".csv", binder_conc){
   ## avg and sd
   avg = aggregate(pb ~ binder, df, mean)
   stdev = aggregate(pb ~ binder, df, sd)
-  ## put back into dataframe
-  df$avg = rep(rep(avg[,2], dat_numb))
-  df$stdev = rep(rep(stdev[,2], dat_numb))
-  ## make common id for avgd data
-  df$c_id = comSub(df$id)
-  return(df)
-}
-  
-fitter = function(in_id, df, length_out=1000){
-  ## will fit model to data from dens_cals.
-  ## df requires columns avg, bndr & id
-  df = subset(df, df$c_id==in_id)
-  tmp = data.frame(avg = df$avg, bndr=df$binder, id=in_id)
-  tmp = unique(tmp)
-  model.drm <- drm (avg ~ bndr, data = tmp, fct = MM.2())
-  mml <- data.frame(S = seq(0, max(tmp$bndr), length.out = length_out))
-  print(summary(mml))
-  mml$v <- predict(model.drm, newdata = mml)
-  mml$c_id = unique(tmp$id)
-  return(mml)
-}
-
-fitCalc = function(df, id_list){
-  # df should be output of densCalc
-  # id_list can be unique(df$c_id)
-  out = do.call(rbind, lapply(id_list, fitter, df))
+  # put into df
+  out  = data.frame(x=binder_conc, y=avg[,2], stdev=stdev[,2], id=label)
   return(out)
 }
+  
 
-kdr = function(df){
-  ## df = output from densCals
-  kdf = data.frame()
-  for (h in unique(df$c_id)){
-    kdlist = list()
-    tf = subset(df, df$c_id==h)
-    for (i in seq(1, length(unique(tf$id)))){
-      tid = unique(tf$id)[[i]]
-      tmp = subset(df, df$id==tid)
-      mf1 = fitter(in_id = tid, df = data.frame(avg=tmp$pb, binder=tmp$binder, c_id=tmp$id))
-      kd = mean(mf1$S[round(mf1$v,0)==50])
-      kdlist = append(kdlist, kd)
-    }
-    
-    kd = mean(sapply(kdlist, mean))
-    kdstdev = sd(sapply(kdlist, mean))
-    out = data.frame(kd=kd, stdev=kdstdev, id=h)
-    kdf = rbind(kdf, out)
-    }
-  return(kdf)
+
+
+fitter = function(df, id, length_out=1000, startval = 0.001, endval=100){
+  ## will fit model to data from dens_cals.
+  ## df requires columns avg, bndr & id
+  ## built from the helpful code here https://github.com/darrenkoppel/Metal-toxicity-to-Antarctic-algae/wiki/Dose-response-curves-with-R%2C-plotted-with-ggplot
+  df = subset(df, df$id==id)
+  model = drm(y~x, data=df, fct=MM.2())
+  newdata = expand.grid(conc=exp(seq(log(startval), log(endval), length=150)))
+  pm = predict(model, newdata=newdata, interval="prediction")
+  newdata$p <- pm[,1]
+  newdata$pmin <- pm[,2]
+  newdata$pmax <- pm[,3]
+  newdata$km = coef(model)[2]
+  newdata$error = coef(summary(model))[2,2]
+  ## if we label this id column the same as the df id column, ggplot gets very confused and annoyed
+  newdata$n_id = id
+  return(newdata)
 }
+
 
 conc_mem2particle = function(concs, head_group_area=6.7E-19,hydro_diam=200, leaflets=2){
   ## give concs in mM!
@@ -133,35 +111,47 @@ conc_mem2particle = function(concs, head_group_area=6.7E-19,hydro_diam=200, leaf
   return(out)
 }
 
-densPlot = function(df, mf, labs, cols, xlab, ylab, log="no", colvar="df$c_id"){
-  ## colvar = df column name to colour by 
-  # correct labels
-  df$c_id = factor(df$c_id, levels = unique(df$c_id), labels = labs)
-  mf$c_id = factor(mf$c_id, levels = unique(mf$c_id), labels = labs)
-  ## set colvar
-  mvar = paste0("mf",substr(colvar, 3, nchar(colvar)))
-  # prepare plot
-  out = ggplot()+
-    geom_point(data=df, aes(x=df$binder, y=df$avg, color = df$var2),   size = 1)+
-    geom_errorbar(data=df, aes(x=df$binder, ymin=df$avg-df$stdev, ymax=df$avg+df$stdev,
-                                color = df$var2),  alpha = 0.75, width=0.1)+
-    geom_line(data = mf, aes(x=mf$S, y=mf$v, colour = mf$var2) , size = 1)+
-    theme_bw(base_size =txt_size)+
-    xlab(xlab)+ylab(ylab)+
-    theme(legend.position="right",
-         strip.background = element_blank())+
-    scale_colour_manual(values = cols, name="")
-    
 
-    if (log=="yes"|log=="y"){
-      out = out + scale_x_continuous(trans='log10', 
-                                     breaks=trans_breaks('log10', function(x) 10^x),
-                                                        labels=trans_format('log10',
-                                                                            math_format(10^.x)))
-    }  
+
+
+densPlot = function(df, mf, colours, xlab, ylab, startval=0.001, logax="x"){
+  
+  plot = ggplot(NULL)+
+    geom_point(data=df, aes(colour=id, x = x, y = y))+
+    geom_errorbar(data=df, aes(x=x, ymin = y-stdev, ymax=y+stdev, colour=id),  alpha = 0.75, width=0.05)+
+    geom_ribbon(data=mf, aes(x=conc, y=p, ymin=pmin, ymax=pmax, fill=n_id), alpha=0.15, colour=NA) +
+    geom_line(data=mf, aes(x=conc, y=p, colour=n_id)) +
+    theme_bw(base_size =txt_size)+
+    scale_colour_manual(values = colours)+
+    scale_fill_manual(values=colours)+
     
-    return(out)
+    guides(color = guide_legend(override.aes = list(size=10,pch=20)),
+           fill = FALSE)+
+    xlab(xlab)+ylab(ylab)+
+  
+  if (tolower(logax)=="x"){
+    plot = plot+scale_x_continuous(trans = log_trans(10), labels = comma_format(big.mark = "",
+                                                                    decimal.mark = "."))+
+      annotation_logticks(sides="b")+My_Theme
+  }
+  plot <- cowplot::ggdraw(plot) + 
+    theme(plot.background = element_rect(fill="white", color = NA))
+  return(plot)
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
