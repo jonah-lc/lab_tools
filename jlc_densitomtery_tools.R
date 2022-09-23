@@ -123,10 +123,12 @@ densPlot = function(df, mf, colours, xlab, ylab, startval=0.001, logax="x"){
     geom_line(data=mf, aes(x=conc, y=p, colour=n_id)) +
     theme_bw(base_size =txt_size)+
     scale_colour_manual(values = colours)+
-    scale_fill_manual(values=colours)+
     theme(legend.title=element_blank())+
+    scale_fill_manual(values=colours)+
+    
     guides(color = guide_legend(override.aes = list(size=10,pch=20)),
            fill = FALSE)+
+    coord_cartesian(ylim=c(0,110))+
     xlab(xlab)+ylab(ylab)+My_Theme
   
   if (tolower(logax)=="x"){
