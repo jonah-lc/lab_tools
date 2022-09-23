@@ -133,7 +133,12 @@ densPlot = function(df, mf, colours, xlab, ylab, startval=0.001, logax="x"){
     plot = plot+scale_x_continuous(trans = log_trans(10), labels = comma_format(big.mark = "",
                                                                     decimal.mark = "."))+
       annotation_logticks(sides="b")
-  }
+  } 
+  if (tolower(logax)=="y"){
+    plot = plot+scale_y_continuous(trans = log_trans(10), labels = comma_format(big.mark = "",
+                                                                                decimal.mark = "."))+
+      annotation_logticks(sides="l")
+  } 
   #plot <- cowplot::ggdraw(plot) + 
    # theme(plot.background = element_rect(fill="white", color = NA))
   return(plot)
