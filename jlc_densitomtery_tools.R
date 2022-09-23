@@ -87,7 +87,7 @@ fitter = function(df, id, length_out=1000, startval = 0.001, endval=100){
   ## built from the helpful code here https://github.com/darrenkoppel/Metal-toxicity-to-Antarctic-algae/wiki/Dose-response-curves-with-R%2C-plotted-with-ggplot
   df = subset(df, df$id==id)
   model = drm(y~x, data=df, fct=MM.2())
-  newdata = expand.grid(conc=exp(seq(log(startval), log(endval), length=150)))
+  newdata = expand.grid(conc=exp(seq(log(startval), log(endval), length=length_out)))
   pm = predict(model, newdata=newdata, interval="prediction")
   newdata$p <- pm[,1]
   newdata$pmin <- pm[,2]
