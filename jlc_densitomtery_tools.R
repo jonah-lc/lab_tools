@@ -1,13 +1,11 @@
 #### Functions for plotting densitometry of gels #####se
-library(ggplot2)
-library(drc)
-library(scales)
+
+
 
 source("/media/jonah/Lickitung/SYNC/4-SCRIPTS/R/jlc_lab_tools.R")
 
-txt_size = 22
-
-
+library(drc)
+library(scales)
 
 densImport = function(path, id) {
   ## imports data set, splits to 2x columns, sample and background
@@ -102,11 +100,13 @@ fitter = function(df, id, length_out=1000, startval = 0.001, endval=100){
 }
 
 
-conc_mem2particle = function(concs, head_group_area=6.7E-19,hydro_diam=200, leaflets=2){
+conc_mem2particle = function(concs, head_group_area=6.7E-19, hydro_diam=200, surface_area=NULL, leaflets = 2){
   ## give concs in mM!
   ## give diam in nm
   ## gives answer in nM
-  surface_area = 4*pi*((hydro_diam/1000000000)/2)^2
+  if(is.null(surface_area)){
+    surface_area = 4*pi*((hydro_diam/1000000000)/2)^2
+  }
   out = (((head_group_area)*(concs/1000))/(leaflets*surface_area))*1000000000
   return(out)
 }
@@ -127,15 +127,15 @@ densPlot = function(df, mf, colours, xlab, ylab, startval=0.001, logax="x"){
     
     guides(color = guide_legend(override.aes = list(size=10,pch=20)),
            fill = FALSE)+
-    xlab(xlab)+ylab(ylab)+
+    xlab(xlab)+ylab(ylab)+My_Theme
   
   if (tolower(logax)=="x"){
     plot = plot+scale_x_continuous(trans = log_trans(10), labels = comma_format(big.mark = "",
                                                                     decimal.mark = "."))+
-      annotation_logticks(sides="b")+My_Theme
+      annotation_logticks(sides="b")
   }
-  plot <- cowplot::ggdraw(plot) + 
-    theme(plot.background = element_rect(fill="white", color = NA))
+  #plot <- cowplot::ggdraw(plot) + 
+   # theme(plot.background = element_rect(fill="white", color = NA))
   return(plot)
 }
 
