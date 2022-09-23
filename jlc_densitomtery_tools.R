@@ -124,7 +124,7 @@ densPlot = function(df, mf, colours, xlab, ylab, startval=0.001, logax="x"){
     theme_bw(base_size =txt_size)+
     scale_colour_manual(values = colours)+
     scale_fill_manual(values=colours)+
-    
+    theme(legend.title=element_blank())+
     guides(color = guide_legend(override.aes = list(size=10,pch=20)),
            fill = FALSE)+
     xlab(xlab)+ylab(ylab)+My_Theme
