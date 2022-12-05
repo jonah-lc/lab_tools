@@ -405,7 +405,7 @@ find_peaks <- function (x, m = 3){
   ## apply white background so no werid box appears 
   out <- cowplot::ggdraw(plot) + 
     theme(plot.background = element_rect(fill="white", color = NA))
-  loc = paste0(dir, name)
+  loc = paste0(dir, name, ".png")
   ## save
   ggsave(filename=loc, 
          plot = out, 
